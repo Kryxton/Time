@@ -16,7 +16,6 @@
     html, body {
       overflow-x: hidden;
     }
-    
     /* Global reset */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -172,7 +171,7 @@
       touch-action: none;
       box-shadow: 0 0 10px rgba(102,187,106,0.1);
       min-height: 200px;
-      overflow: hidden;  /* Prevents elements from shifting layout */
+      overflow: hidden;
     }
     #uploadedPhoto {
       width: 100%;
@@ -390,7 +389,7 @@
     
     <!-- Photo Editor Section -->
     <div class="photo-editor-section">
-      <h2>Create your own Meme</h2>
+      <h2>Add the Time Logo to Your Photo</h2>
       <div class="controls">
         <input type="file" id="uploadInput" accept="image/*" style="font-size:1em; color:#66bb6a;">
       </div>
@@ -404,8 +403,8 @@
         <label for="sizeSlider">Logo Size:</label>
         <input type="range" id="sizeSlider" min="0.5" max="2" step="0.1" value="1">
       </div>
-      <!-- Angle slider (hidden by default) -->
-      <div class="slider-container" id="angleContainer" style="display: none;">
+      <!-- Angle slider is now visible by default -->
+      <div class="slider-container" id="angleContainer">
         <label for="angleSlider">Logo Angle:</label>
         <input type="range" id="angleSlider" min="-180" max="180" step="1" value="0">
       </div>
@@ -462,13 +461,13 @@
     
     <!-- Chart Container -->
     <div class="chart-container">
-   <iframe 
-	width="100%" 
-	height="600" 
-	src="https://birdeye.so/tv-widget/5VYLevLCBvMqZjFTDb3KoUAnqyyEMf7CVmvQp4jKpump?chain=solana&viewMode=pair&chartInterval=15&chartType=Candle&chartTimezone=Europe%2FBerlin&chartLeftToolbar=show&theme=dark" 
-	frameborder="0" 
-	allowfullscreen>
-</iframe>
+      <iframe 
+        width="100%" 
+        height="600" 
+        src="https://birdeye.so/tv-widget/8pXCpTRaQaxwQ1opRFGHtWGNE62zFtH388z2QDVPpump?chain=solana&viewMode=pair&chartInterval=15&chartType=Candle&chartTimezone=Europe%2FBerlin&chartLeftToolbar=show&theme=dark&chartOverrides=mainSeriesProperties.candleStyle.upColor%3A%2300c572&chartOverrides=mainSeriesProperties.candleStyle.wickUpColor%3A%2300c572&chartOverrides=mainSeriesProperties.candleStyle.borderUpColor%3A%2300c572" 
+        frameborder="0" 
+        allowfullscreen>
+      </iframe>
     </div>
   </div>
 
@@ -569,18 +568,6 @@
     }, { passive: false });
     
     document.addEventListener('touchend', () => { isDraggingLogo = false; });
-    
-    // Double-tap/click to toggle angle slider for logo
-    let lastTapTimeLogo = 0;
-    dogOverlay.addEventListener('click', function(e) {
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTapTimeLogo;
-      if (tapLength < 300 && tapLength > 0) {
-        angleContainer.style.display = (angleContainer.style.display === 'none' ? 'flex' : 'none');
-        e.preventDefault();
-      }
-      lastTapTimeLogo = currentTime;
-    });
     
     // --- Text Functionality ---
     const addTextBtn = document.getElementById('addTextBtn');
@@ -734,7 +721,7 @@
     
     document.getElementById("resetLayoutBtn").addEventListener("click", resetLayout);
     
-    // Save Photo: draws uploaded photo, logo overlay, and all text overlays
+    // Save Photo: draws uploaded photo, logo overlay (with rotation/scale), and all text overlays
     function savePhoto() {
       if (!uploadedPhoto.src || uploadedPhoto.style.display === 'none') {
         alert("Please upload a photo first.");
@@ -746,10 +733,10 @@
       canvas.height = stageRect.height;
       const ctx = canvas.getContext('2d');
       
-      // Draw uploaded photo
+      // Draw uploaded photo as background
       ctx.drawImage(uploadedPhoto, 0, 0, canvas.width, canvas.height);
       
-      // Draw logo overlay
+      // Draw logo overlay with rotation and scale
       const overlayImg = new Image();
       overlayImg.crossOrigin = "Anonymous";
       overlayImg.src = dogOverlay.src;
@@ -758,7 +745,17 @@
         const logoBox = dogOverlay.getBoundingClientRect();
         const posX = logoBox.left - stageBox.left;
         const posY = logoBox.top - stageBox.top;
-        ctx.drawImage(overlayImg, posX, posY, logoBox.width, logoBox.height);
+        
+        ctx.save();
+        // Translate to the center of the logo overlay
+        ctx.translate(posX + logoBox.width/2, posY + logoBox.height/2);
+        // Rotate based on currentAngle (in radians)
+        ctx.rotate(currentAngle * Math.PI / 180);
+        // Scale based on currentScale
+        ctx.scale(currentScale, currentScale);
+        // Draw the overlay centered
+        ctx.drawImage(overlayImg, -logoBox.width/2, -logoBox.height/2, logoBox.width, logoBox.height);
+        ctx.restore();
         
         // Draw each text overlay
         document.querySelectorAll('.draggable-text').forEach(textEl => {
